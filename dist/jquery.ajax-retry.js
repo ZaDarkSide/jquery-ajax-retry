@@ -6,16 +6,16 @@
  * Licensed under the MIT license.
  */
 (function(factory) {
-    if (typeof define === 'function' && define.amd) {
-      // AMD. Register as an anonymous module.
-      define(['jquery'], factory);
-    } else if (typeof exports === 'object') {
-        // Node/CommonJS
-        factory(require('jquery'));
-    } else {
-      // Browser globals
-      factory(jQuery);
-    }
+  if (typeof define === 'function' && define.amd) {
+    // AMD. Register as an anonymous module.
+    define(['jquery'], factory);
+  } else if (typeof exports === 'object') {
+    // Node/CommonJS
+    factory(require('jquery'));
+  } else {
+    // Browser globals
+    factory(jQuery);
+  }
 })(function($) {
 
   // enhance all ajax requests with our retry API
@@ -27,7 +27,10 @@
       if (opts.statusCodes) {
         this.statusCodes = opts.statusCodes;
       }
-      return this.pipe(null, pipeFailRetry(this, opts));
+      if (opts.notStatusCodes) {
+        this.notStatusCodes = opts.notStatusCodes;
+      }
+      return this.then(null, pipeFailRetry(this, opts));
     };
   });
 
@@ -46,17 +49,17 @@
       function nextRequest() {
         $.ajax(ajaxOptions)
           .retry({times: times - 1, timeout: opts.timeout, statusCodes: opts.statusCodes})
-          .pipe(output.resolve, output.reject);
+          .then(output.resolve, output.reject);
       }
 
-      if (times > 1 && (!jqXHR.statusCodes || $.inArray(input.status, jqXHR.statusCodes) > -1)) {
+      if (times > 1 && (!jqXHR.statusCodes || $.inArray(input.status, jqXHR.statusCodes) > -1) && (!jqXHR.notStatusCodes || $.inArray(input.status, jqXHR.notStatusCodes) === -1)) {
         // implement Retry-After rfc
         // http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.37
         if (retryAfter) {
           // it must be a date
           if (isNaN(retryAfter)) {
             timeout = new Date(retryAfter).getTime() - $.now();
-          // its a number in seconds
+            // its a number in seconds
           } else {
             timeout = parseInt(retryAfter, 10) * 1000;
           }
